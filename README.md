@@ -11,7 +11,10 @@ A powerful, agentic AI system designed to perform comprehensive investment resea
 -   **Risk Assessment**: dedicated agent for identifying downside risks and volatility.
 -   **Modern Tech Stack**: Built on the latest LangChain and LangGraph APIs (v1.0+), using `uv` for fast package management.
 
-## � Screenshots
+## Screenshots
+
+![Input Interface](assets/input_interface.png)
+*Natural Language Input Interface*
 
 ![Market Dashboard](assets/market_dashboard.png)
 *Real-time Market Dashboard*
