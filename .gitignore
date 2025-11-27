@@ -6,3 +6,5 @@ __pycache__/
 .langgraph_api/
 response.json
 image.png
+__pycache__/
+*.pyc
