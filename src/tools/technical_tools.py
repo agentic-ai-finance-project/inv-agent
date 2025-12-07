@@ -14,10 +14,14 @@ def calculate_rsi(df, window=14):
     rsi = 100 - (100 / (1 + rs)).replace([np.inf, -np.inf], np.nan).fillna(100) 
     return rsi
 
+def calculate_mtm(df, window=10):
+    """Calculates Momentum Index (MTM) as the difference between current close and close N days ago (Close(t) - Close(t-n))."""
+    return df['Close'].diff(window)
+
 @tool
 def get_technical_data(ticker: str) -> str:
     """
-    Retrieves and calculates all available technical indicators (MA_20, MA_50, RSI_14, key levels) 
+    Retrieves and calculates all available technical indicators (MA_20, MA_50, RSI_14, MTM_10, key levels) 
     for the last 6 months for the given stock ticker.
     Input should be a stock ticker symbol (e.g., 'TSM', 'NVDA').
     """
@@ -32,6 +36,7 @@ def get_technical_data(ticker: str) -> str:
         df['SMA_20'] = df['Close'].rolling(window=20).mean()
         df['SMA_50'] = df['Close'].rolling(window=50).mean()
         df['RSI_14'] = calculate_rsi(df, window=14)
+        df['MTM_10'] = calculate_mtm(df, window=10) # <-- ADDED MTM CALCULATION
         
         # Key Levels (90-Day High/Low)
         recent_data = df['Close'].tail(90)
@@ -47,6 +52,7 @@ def get_technical_data(ticker: str) -> str:
         SMA_20: {latest['SMA_20']:.2f}
         SMA_50: {latest['SMA_50']:.2f}
         RSI_14: {latest['RSI_14']:.2f}
+        MTM_10: {latest['MTM_10']:.2f}
         
         --- Key Price Levels (90-Day) ---
         Resistance: {resistance:.2f}
