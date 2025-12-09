@@ -5,14 +5,17 @@ from ..state import AgentState
 from ..utils import get_llm
 
 @tool
-def submit_routing_instructions(tickers: List[str], data_analyst_instructions: str, news_analyst_instructions: str):
+def submit_routing_instructions(tickers: List[str], data_analyst_instructions: str, news_analyst_instructions: str, trend_analyst_instructions: str, pattern_analyst_instructions: str, indicator_analyst_instructions: str):
     """
-    Submit the extracted tickers and specific instructions for the Data Analyst and News Analyst.
+    Submit the extracted tickers and specific instructions for the Data Analyst, News Analyst, Trend Analyst, Pattern Analyst, and Indicator Analyst.
     
     Args:
         tickers: List of stock tickers found in the query.
         data_analyst_instructions: Specific instructions for the Data Analyst (financials, valuation).
         news_analyst_instructions: Specific instructions for the News Analyst (news, sentiment, events).
+        trend_analyst_instructions: Specific instructions for the Trend Analyst (MA, trend lines, direction).
+        pattern_analyst_instructions: Specific instructions for the Pattern Analyst (candlestick and chart patterns).
+        indicator_analyst_instructions: Specific instructions for the Indicator Analyst (RSI, MACD, Stochastic).
     """
     return "Instructions submitted."
 
@@ -23,20 +26,23 @@ def router_node(state: AgentState):
     llm = get_llm(temperature=0)
     
     system_prompt = """You are a Senior Financial Research Lead.
-    Your job is to orchestrate the research process by analyzing the user's query and delegating tasks.
+    您的工作是透過分析用戶的查詢並分配任務來協調研究流程。
     
-    1. **Analyze the User Query**: Understand the core question, hypothesis, or concern.
-    2. **Extract Tickers**: Identify all stock tickers mentioned or implied.
-    3. **Delegate to Data Analyst**: Create specific instructions for the Data Analyst. 
-       - What specific financial metrics should they look for? (e.g., "Check gross margins if the user asks about profitability").
-       - What valuation multiples are relevant?
-    4. **Delegate to News Analyst**: Create specific instructions for the News Analyst.
-       - What specific keywords or topics should they search for? (e.g., "Search for 'supply chain issues' if the user asks about delays").
-       - What sentiment or events matter most?
+    1. **分析用戶查詢**: 了解核心問題、假設或關注點。
+    2. **提取股票代碼**: 識別所有提及或暗示的股票代碼。
+    3. **分配給數據分析師**: 為數據分析師創建具體指令。
+       - 應該尋找哪些具體的財務指標？（例如: 「如果用戶詢問盈利能力，請檢查毛利率。」）
+       - 哪些估值倍數是相關的？
+    4. **分配給新聞分析師**: 為新聞分析師創建具體指令。
+       - 應搜索哪些具體的關鍵詞或主題？（例如: 「如果用戶詢問延誤，請搜索『供應鏈問題』。」）
+       - 哪些情緒或事件最重要？
+    5. **分配給趨勢分析師**: 創建具體指令，著重於移動平均線、價格方向和時間框架（例如: 「分析 20 日和 50 日移動平均線之間的關係。」）。
+    6. **分配給型態分析師**: 創建具體指令，著重於 K 線或圖表型態（例如: 「尋找頭肩底或旗形型態。」）。
+    7. **分配給指標分析師**: 創建具體指令，著重於動能（RSI, MACD）和波動性指標（例如: 「使用 14 週期 RSI 評估動能。」）。
        
-    **Goal**: Do not just pass the generic query. Translate the user's intent into precise, actionable technical instructions for your team.
+    **目標**: 不要只傳遞一般的查詢。將用戶的意圖轉化為精確、可執行的技術指令。
     
-    You MUST call the `submit_routing_instructions` tool to output your decision.
+    您**必須**調用 `submit_routing_instructions` 工具來輸出您的決策。
     """
     
     # Create the agent
@@ -67,8 +73,19 @@ def router_node(state: AgentState):
         return {
             "tickers": args.get("tickers", []),
             "data_analyst_instructions": args.get("data_analyst_instructions", ""),
-            "news_analyst_instructions": args.get("news_analyst_instructions", "")
+            "news_analyst_instructions": args.get("news_analyst_instructions", ""),
+            "trend_analyst_instructions": args.get("trend_analyst_instructions", ""),
+            "pattern_analyst_instructions": args.get("pattern_analyst_instructions", ""),
+            "indicator_analyst_instructions": args.get("indicator_analyst_instructions", "")
         }
     
     # Fallback if no tool call (shouldn't happen with good LLM)
-    return {"tickers": [], "data_analyst_instructions": state["query"], "news_analyst_instructions": state["query"]}
+    default_instruction = state["query"]
+    return {
+        "tickers": [], 
+        "data_analyst_instructions": default_instruction, 
+        "news_analyst_instructions": default_instruction,
+        "trend_analyst_instructions": default_instruction,
+        "pattern_analyst_instructions": default_instruction,
+        "indicator_analyst_instructions": default_instruction
+    }

@@ -42,8 +42,9 @@ def data_analyst_node(state: AgentState):
     Start directly with the analysis. Do NOT use introductory phrases.
     Ensure numbers are formatted legibly (e.g., 1.2B, 35%).
     Use data from the "Income Statement Trends" and "Balance Sheet Trends" sections provided by the tool.
+    If comparing multiple tickers, a comparison table is highly recommended.
     """
-    
+
     # Create the agent
     # 注意：請確認你的 create_agent 函數支援這種調用方式 (通常 LangChain 較新版本可能需要 create_react_agent 或類似)
     agent = create_agent(

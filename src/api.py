@@ -5,6 +5,7 @@ from src.graph import create_graph
 import json  
 import os  
 
+import pandas
 load_dotenv()
 
 app = FastAPI(title="Investment Agent API")
@@ -16,12 +17,21 @@ class ResearchRequest(BaseModel):
 async def research(request: ResearchRequest):
     try:
         graph = create_graph()
-        # Initialize state with just the query, other fields will be populated by agents
+        # Initialize state with all fields required by the new architecture
         initial_state = {
             "query": request.query,
             "tickers": [],
+            "data_analyst_instructions": None,
+            "news_analyst_instructions": None,
+            "trend_analyst_instructions": None,
+            "pattern_analyst_instructions": None,
+            "indicator_analyst_instructions": None,
             "data_analysis": None,
             "news_analysis": None,
+            "trend_analysis": None,
+            "pattern_analysis": None,
+            "indicator_analysis": None,
+            "technical_strategy": None,
             "risk_assessment": None,
             "final_report": None
         }

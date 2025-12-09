@@ -15,6 +15,7 @@ def editor_node(state: AgentState):
     - User Query: The specific question the user asked.
     - Data Analysis (Valuation, Financials)
     - News Analysis (Catalysts, Sentiment)
+    - Technical Strategy (Trend, Patterns, Momentum)
     - Risk Assessment (Bear Case, Risk Score)
     
     Output:
@@ -38,12 +39,16 @@ def editor_node(state: AgentState):
     3. **Valuation & Financials (估值與財務)**:
         - A narrative analysis of the valuation. Is it cheap relative to peers?
         - Cite P/E ratios, margins, and growth rates as evidence.
+        
+    4. **Technical Outlook (技術展望)**:
+        - A narrative analysis of the price trend, momentum, and key levels based on the Technical Strategy. Is the chart supportive of the thesis?
+        - Cite MA and RSI findings as evidence.
     
-    4. **Risk Factors (Bear Case) (風險因素/看空情境)**:
+    5. **Risk Factors (Bear Case) (風險因素/看空情境)**:
         - A narrative description of what could go wrong.
         - Cite the Risk Manager's specific scenarios and scores.
     
-    5. **Conclusion (結論)**: Final recommendation.
+    6. **Conclusion (結論)**: Final recommendation.
     
     Tone: Authoritative, professional, and decisive.
     """
@@ -58,6 +63,7 @@ def editor_node(state: AgentState):
     user_query = state.get("query", "No specific query provided.")
     data_analysis = state.get("data_analysis")
     news_analysis = state.get("news_analysis")
+    technical_strategy = state.get("technical_strategy")
     risk_assessment = state.get("risk_assessment")
     
     user_message = f"""User Query:
@@ -68,6 +74,9 @@ Data Analysis:
 
 News Analysis:
 {news_analysis}
+
+Technical Strategy:
+{technical_strategy}
 
 Risk Assessment:
 {risk_assessment}
