@@ -24,6 +24,7 @@ def get_llm(temperature=0):
     elif provider == "groq":
         if not model_name:
             model_name = "openai/gpt-oss-120b"
+            model_kwargs={"reasoning_format": "hidden"}
         return ChatGroq(model=model_name, temperature=temperature)
     
     else:

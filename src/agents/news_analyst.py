@@ -39,6 +39,11 @@ def news_analyst_node(state: AgentState):
     `Link: ...`
     `Summary: ...`
     
+    **CRITICAL RULE FOR TOOL USE (MUST FOLLOW):**
+    1. **NO INTERNAL MONOLOGUE**: Do NOT output thoughts, plans, or explanations before calling a tool.
+    2. **DIRECT INVOCATION**: If you need to search, output the JSON tool call IMMEDIATELY as the very first thing.
+    3. **SILENCE**: Do not say "I will now search for..." or "Let me check the news...". Just do it.
+    
     You MUST extract the `Title` and `Link` exactly as provided.
     Example: `[Bloomberg: NVDA hits record high](https://www.bloomberg.com/news/...)`
     Do NOT just list the URL. Do NOT use HTML.
