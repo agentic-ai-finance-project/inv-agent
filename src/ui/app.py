@@ -4,6 +4,9 @@ import yfinance as yf
 import plotly.graph_objects as go
 from datetime import datetime, timedelta
 import re
+# numpy needed for plot helper function's linspace
+import numpy as np
+from plotly.subplots import make_subplots # 新增 Plotly Subplots 導入
 import os
 import json
 
@@ -229,6 +232,7 @@ def render_sections_markdown(raw_text: str, heading_level: int = 3):
 # 既有 Helper: yfinance、chart、數字格式化
 # ---------------------------------------------------------
 
+@st.cache_data(ttl=3600)
 def get_stock_data(ticker, period="1d"):
     try:
         stock = yf.Ticker(ticker)
@@ -249,14 +253,35 @@ def get_stock_data(ticker, period="1d"):
     except Exception:
         return None, None
 
+@st.cache_data(ttl=3600)
+def get_ta_base_data(ticker):
+    """Fetch 2 years (or max) of daily data for technical analysis to ensure sufficient lookback."""
+    # Fetch 2 years for sufficient lookback (e.g., MA200)
+    try:
+        stock = yf.Ticker(ticker)
+        history = stock.history(period="2y", interval="1d") 
+        
+        # If 2 years of data is unavailable, fall back to max available data
+        if history.empty or len(history) < 200: 
+            history = stock.history(period="max", interval="1d")
+            
+        # Return an empty DataFrame structure if fetching still fails
+        if history.empty:
+            return yf.Ticker("AAPL").history(period="1d").head(0)
+            
+        return history
+    except Exception:
+        # Return an empty DataFrame structure for safety
+        return yf.Ticker("AAPL").history(period="1d").head(0)
 
-def plot_google_finance_chart(history, ticker):
+def plot_stock_chart(history, ticker, chart_type='line'):
     if history.empty:
         return go.Figure()
 
     start_price = history['Close'].iloc[0]
     end_price = history['Close'].iloc[-1]
-    line_color = "#81c995" if end_price >= start_price else "#f28b82"
+    # 決定顏色 (用於連線圖，或 K 棒的線條顏色)
+    line_color = "#81c995" if end_price >= start_price else "#f28b82" 
     
     min_price = history['Low'].min()
     max_price = history['High'].max()
@@ -276,7 +301,8 @@ def plot_google_finance_chart(history, ticker):
         
     num_ticks = 7
     if len(history) > num_ticks:
-        import numpy as np
+        # NOTE: numpy is required for this logic
+        # import numpy as np
         tick_indices = np.linspace(0, len(history) - 1, num=num_ticks, dtype=int)
         tick_vals = [history.index[i] for i in tick_indices]
         tick_text = [history.index[i].strftime(date_format) for i in tick_indices]
@@ -285,16 +311,34 @@ def plot_google_finance_chart(history, ticker):
         tick_text = [d.strftime(date_format) for d in history.index]
 
     fig = go.Figure()
-    fig.add_trace(go.Scatter(
-        x=history.index, 
-        y=history['Close'],
-        mode='lines',
-        fill='tozeroy',
-        line=dict(color=line_color, width=2),
-        fillcolor=f"rgba({int(line_color[1:3], 16)}, {int(line_color[3:5], 16)}, {int(line_color[5:7], 16)}, 0.1)",
-        name=ticker,
-        hovertemplate=f"%{{x|{hover_format}}}<br>Price: %{{y:.2f}}<extra></extra>"
-    ))
+    
+    if chart_type == 'candlestick':
+        # Candlestick 繪圖邏輯
+        fig.add_trace(go.Candlestick(
+            x=history.index,
+            open=history['Open'],
+            high=history['High'],
+            low=history['Low'],
+            close=history['Close'],
+            name=ticker,
+            increasing=dict(line=dict(color='#81c995', width=1)), # Green line
+            decreasing=dict(line=dict(color='#f28b82', width=1)), # Red line
+            hovertemplate="%{x|%b %d}<br>開: %{open:.2f}<br>高: %{high:.2f}<br>低: %{low:.2f}<br>收: %{close:.2f}<extra></extra>"
+        ))
+        # 移除 Candlestick 預設的範圍滑塊 (Range Slider)
+        fig.update_layout(xaxis_rangeslider_visible=False) 
+    else: # 'line' chart (default) 
+        # 原有的連線圖繪圖邏輯
+        fig.add_trace(go.Scatter(
+            x=history.index, 
+            y=history['Close'],
+            mode='lines',
+            fill='tozeroy',
+            line=dict(color=line_color, width=2),
+            fillcolor=f"rgba({int(line_color[1:3], 16)}, {int(line_color[3:5], 16)}, {int(line_color[5:7], 16)}, 0.1)",
+            name=ticker,
+            hovertemplate=f"%{{x|{hover_format}}}<br>Price: %{{y:.2f}}<extra></extra>"
+        ))
 
     fig.update_layout(
         margin=dict(l=0, r=0, t=0, b=0),
@@ -335,6 +379,198 @@ def format_large_number(num):
     if num >= 1_000_000:
         return f"{num/1_000_000:.2f}百萬"
     return f"{num:,.2f}"
+
+
+# ---------------------------------------------------------
+# NEW Helper for Technical Analysis Calculation
+# ---------------------------------------------------------
+
+def calculate_sma(history, window):
+    """Calculates Simple Moving Average on the Close price."""
+    return history['Close'].rolling(window=window).mean()
+
+def calculate_rsi(df, window=14):
+    """Calculate Relative Strength Index (RSI)"""
+    delta = df['Close'].diff()
+    gain = (delta.where(delta > 0, 0)).fillna(0)
+    loss = (-delta.where(delta < 0, 0)).fillna(0)
+    avg_gain = gain.rolling(window=window, min_periods=window).mean()
+    avg_loss = loss.rolling(window=window, min_periods=window).mean()
+    rs = avg_gain / avg_loss
+    # 使用 .replace 處理除以零導致的 inf 值
+    rsi = 100 - (100 / (1 + rs)).replace([np.inf, -np.inf], np.nan).fillna(100) 
+    return rsi
+
+def calculate_mtm(df, window=10):
+    """Calculates Momentum Index (MTM)"""
+    return df['Close'].diff(window)
+
+# ---------------------------------------------------------
+# Refactored Helper for Technical Analysis Plotting
+# ---------------------------------------------------------
+
+def plot_technical_analysis(history, ticker, price_lines=None, indicator_list=None, title="技術分析"):
+    """
+    Plots the stock price (Candlestick) with optional price lines (MA, Bands) 
+    and optional indicators (like RSI, MTM) in separate subplots.
+    """
+    indicator_list = indicator_list or []
+    if history.empty:
+        fig = go.Figure()
+        fig.update_layout(
+            paper_bgcolor='#202124', plot_bgcolor='#202124', height=500,
+            xaxis=dict(visible=False), yaxis=dict(visible=False),
+            annotations=[dict(text="暫無數據", showarrow=False, font=dict(size=20, color='#f28b82'))]
+        )
+        return fig
+
+    # Determine subplot layout based on the number of indicators
+    rows = 1 + len(indicator_list)
+    vertical_spacing = 0.02
+
+    if rows == 1:
+        row_heights = [1.0]
+        specs = [[{"secondary_y": False}]]
+        chart_height = 500
+    else:
+        # Price chart (Row 1) takes 40% height, indicators share the remaining 60%
+        price_height = 0.4
+        indicator_single_height = (1.0 - price_height) / (rows - 1)
+        
+        row_heights = [price_height] + [indicator_single_height] * (rows - 1)
+        specs = [[{"secondary_y": False}]] * rows
+        chart_height = 450 + 150 * (rows - 1) # ~750 for 3 rows
+        
+    fig = make_subplots(
+        rows=rows, 
+        cols=1, 
+        shared_xaxes=True, 
+        vertical_spacing=vertical_spacing,
+        row_heights=row_heights,
+        specs=specs
+    )
+
+    # 1. Price Chart (Candlestick)
+    fig.add_trace(go.Candlestick(
+        x=history.index,
+        open=history['Open'],
+        high=history['High'],
+        low=history['Low'],
+        close=history['Close'],
+        name='股價 (Candlestick)',
+        increasing=dict(line=dict(color='#81c995')), # Green
+        decreasing=dict(line=dict(color='#f28b82')), # Red
+        yaxis='y1',
+        hovertemplate="%{x|%Y/%m/%d}<br>開: %{open:.2f}<br>高: %{high:.2f}<br>低: %{low:.2f}<br>收: %{close:.2f}<extra></extra>"
+    ), row=1, col=1)
+    
+    # 2. Add Price Technical Lines (e.g., MA, Bands)
+    if price_lines:
+        for line_data, name, color in price_lines:
+            if line_data is not None and not line_data.empty:
+                # 只繪製在 plotting window 內的數據
+                line_data_plot = line_data[line_data.index.isin(history.index)]
+                
+                fig.add_trace(go.Scatter(
+                    x=line_data_plot.index,
+                    y=line_data_plot.values,
+                    mode='lines',
+                    name=name,
+                    line=dict(color=color, width=2),
+                    yaxis='y1',
+                    opacity=0.8
+                ), row=1, col=1)
+
+    # 3. Add Indicator Subplots
+    for i, indicator_data in enumerate(indicator_list):
+        row_index = i + 2 # Indicators start from row 2
+        
+        indicator_data_plot = indicator_data["series"][indicator_data["series"].index.isin(history.index)]
+        
+        fig.add_trace(go.Scatter(
+            x=indicator_data_plot.index,
+            y=indicator_data_plot.values,
+            mode='lines',
+            name=indicator_data["name"],
+            line=dict(color=indicator_data["color"], width=2),
+            yaxis=f'y{row_index}'
+        ), row=row_index, col=1)
+
+        # Add horizontal lines for RSI overbought/oversold levels
+        if indicator_data.get("type") == "RSI":
+            fig.add_hline(y=70, line_dash="dash", line_color="#E93E33", opacity=0.8, row=row_index, col=1, annotation_text="超買 (70)", annotation_position="top left", annotation_font_color="#E93E33")
+            fig.add_hline(y=30, line_dash="dash", line_color="#81c995", opacity=0.8, row=row_index, col=1, annotation_text="超賣 (30)", annotation_position="bottom left", annotation_font_color="#81c995")
+            fig.update_yaxes(range=[0, 100], row=row_index, col=1) # Standard RSI range
+
+        # Add horizontal line for MTM zero axis
+        elif indicator_data.get("type") == "MTM":
+            fig.add_hline(y=0, line_dash="dash", line_color="#9aa0a6", opacity=0.8, row=row_index, col=1)
+            
+        # Set Y-axis title dynamically
+        fig.update_yaxes(
+            title=indicator_data["name"],
+            showgrid=True,
+            gridcolor='#303134',
+            showticklabels=True,
+            tickfont=dict(color='#9aa0a6'),
+            side='right',
+            row=row_index, col=1
+        )
+
+    # --- Layout Configuration ---
+    # Determine the time range for X-axis ticks
+    time_diff = history.index[-1] - history.index[0]
+    if time_diff <= timedelta(days=365 * 2):
+        date_format = "%Y/%m"
+    else:
+        date_format = "%Y"
+
+    num_ticks = 10
+    if len(history) > num_ticks:
+        tick_indices = np.linspace(0, len(history) - 1, num=num_ticks, dtype=int)
+        tick_vals = [history.index[i] for i in tick_indices]
+        tick_text = [history.index[i].strftime(date_format) for i in tick_indices]
+    else:
+        tick_vals = history.index
+        tick_text = [d.strftime(date_format) for d in history.index]
+        
+    # Get price range for Y-axis (excluding indicator lines for cleaner range)
+    min_price = history['Low'].min()
+    max_price = history['High'].max()
+    padding = (max_price - min_price) * 0.1 if max_price != min_price else max_price * 0.05
+    y_range = [min_price - padding, max_price + padding]
+
+    fig.update_layout(
+        title=dict(text=f"**{title}** - {ticker}", font=dict(color='#e8eaed', size=16), x=0.05, y=0.98),
+        margin=dict(l=20, r=20, t=40, b=20),
+        xaxis=dict(
+            type='category',
+            showgrid=False, 
+            linecolor='#3c4043',
+            tickfont=dict(color='#9aa0a6'),
+            tickmode='array',
+            tickvals=tick_vals,
+            ticktext=tick_text,
+            rangeslider_visible=False # Hide the range slider for a cleaner look
+        ),
+        yaxis=dict(
+            title='股價 (Price)',
+            showgrid=True, 
+            gridcolor='#303134',
+            showticklabels=True,
+            tickfont=dict(color='#9aa0a6'),
+            side='right',
+            range=y_range
+        ),
+        paper_bgcolor='#202124', # Match app background
+        plot_bgcolor='#202124',
+        height=chart_height,
+        hovermode="x unified",
+        showlegend=True,
+        legend=dict(orientation="h", yanchor="top", y=1.02 if rows == 1 else 0.99, xanchor="left", x=0.05)
+    )
+    return fig
+
 
 # ---------------------------------------------------------
 # Main Application
@@ -386,15 +622,10 @@ if start_analysis:
         # 在 spinner 顯示當前的風格，增加互動感
         with st.spinner(f"代理人團隊正在以「{style_display}」進行深度研究..."):
             try:
-                if USE_MOCK_DATA:
-                    # 讀取本地檔案
-                    import time
-                    time.sleep(0.5) 
-                    mock_data = get_mock_data()
-                    
-                    if mock_data:
-                        st.session_state.research_result = mock_data
-                        st.success("測試資料載入完成！(注意：Mock 模式下不會動態改變風格結果)")
+                # 假設 API 在 localhost:8000 運行
+                response = requests.post("http://localhost:8000/research", json={"query": query})
+                if response.status_code == 200:
+                    st.session_state.research_result = response.json()
                 else:
                     # --- 將 style 參數加入 payload ---
                     payload = {
@@ -415,15 +646,21 @@ if 'research_result' in st.session_state:
     result = st.session_state.research_result
     tickers = result.get("tickers", [])
     
-    st.markdown("---")
-    
-    # 1. Dashboard
+    # 確保有股票代號才能顯示儀表板和技術分析圖
     if tickers:
-        st.subheader("📈 市場儀表板")
-        
         selected_ticker = tickers[0]
         if len(tickers) > 1:
+            st.markdown("---")
             selected_ticker = st.radio("選擇股票", tickers, horizontal=True, label_visibility="collapsed")
+    else:
+        # 如果沒有識別出股票代號，則無法繪圖，但仍可顯示報告
+        selected_ticker = None
+
+
+    # 1. Dashboard
+    st.markdown("---")
+    if selected_ticker:
+        st.subheader("📈 市場儀表板")
         
         period_options = {
             "1 天": "1d", "5 天": "5d", "1 個月": "1mo", "6 個月": "6mo",
@@ -441,6 +678,7 @@ if 'research_result' in st.session_state:
                 unsafe_allow_html=True
             )
             
+            # Time Period Selector
             selected_label = st.radio(
                 "Time Period",
                 options=list(period_options.keys()),
@@ -450,6 +688,18 @@ if 'research_result' in st.session_state:
                 index=2
             )
             selected_period_code = period_options[selected_label]
+
+            # Chart Type Selection (Added in previous step)
+            chart_type_map = {"連線圖 (Line)": "line", "K 棒圖 (Candlestick)": "candlestick"}
+            chart_type_label = st.radio(
+                "Chart Type",
+                options=list(chart_type_map.keys()),
+                horizontal=True,
+                label_visibility="collapsed",
+                key=f"chart_type_selector_{selected_ticker}",
+                index=0,
+            )
+            selected_chart_type = chart_type_map[chart_type_label]
             
             _, history = get_stock_data(selected_ticker, period=selected_period_code)
             current_price = info.get('currentPrice', info.get('regularMarketPrice', 0))
@@ -488,7 +738,7 @@ if 'research_result' in st.session_state:
 
             if history is not None and not history.empty:
                 st.plotly_chart(
-                    plot_google_finance_chart(history, selected_ticker),
+                    plot_stock_chart(history, selected_ticker, chart_type=selected_chart_type),
                     use_container_width=True,
                     config={'displayModeBar': False}
                 )
@@ -529,12 +779,24 @@ if 'research_result' in st.session_state:
                 """)
         else:
             st.error(f"無法獲取 {selected_ticker} 的數據")
+    else:
+        st.warning("未識別出股票代號，無法顯示市場儀表板。")
+
 
     # 2. 報告區
     st.markdown("---")
     st.subheader("📝 AI 投資報告")
     
-    t1, t2_tab, t3_tab, t4_tab, t5_tab = st.tabs(["最終建議", "數據分析", "新聞摘要", "風險評估", "新聞來源"])
+    # 9 Tabs for comprehensive report
+    t1, t2_tab, t3_tab, t4_tab, t5_tab, t6_tab, t7_tab, t8_tab, t9_tab = st.tabs([
+        "最終建議", "數據分析", "新聞摘要", 
+        "技術策略總結", 
+        "技術 - 趨勢", 
+        "技術 - 型態", 
+        "技術 - 指標",
+        "風險評估", 
+        "新聞來源"
+    ])
     
     with t1:
         render_sections_markdown(result.get("final_report", ""))
@@ -546,6 +808,123 @@ if 'research_result' in st.session_state:
         render_sections_markdown(result.get("news_analysis", ""))
 
     with t4_tab:
+        render_sections_markdown(result.get("technical_strategy", "無技術策略總結。"))
+        
+    with t5_tab:
+        # 趨勢分析圖表 (MA20/MA50)
+        if selected_ticker:
+            # 1. 獲取足夠 lookback 的數據 (2年)
+            history_full = get_ta_base_data(selected_ticker)
+
+            if not history_full.empty:
+                # 2. 定義繪圖範圍 (過去一年)
+                one_year_ago = datetime.now() - timedelta(days=365)
+                history_plot = history_full[history_full.index >= one_year_ago.strftime('%Y-%m-%d')]
+                
+                if history_plot.empty:
+                    history_plot = history_full
+
+                # 3. 於完整數據集上計算指標
+                ma20 = calculate_sma(history_full, 20)
+                ma50 = calculate_sma(history_full, 50)
+
+                price_lines = [
+                    (ma20, "20日移動平均 (MA20)", "#4285F4"), # Google Blue
+                    (ma50, "50日移動平均 (MA50)", "#E93E33") # Google Red
+                ]
+
+                fig = plot_technical_analysis(
+                    history_plot, 
+                    selected_ticker, 
+                    price_lines=price_lines,
+                    title="股價趨勢分析 (MA20/MA50)"
+                )
+                st.plotly_chart(fig, use_container_width=True, config={'displayModeBar': False})
+            else:
+                st.warning(f"無法獲取 {selected_ticker} 的股價數據進行技術趨勢分析。")
+        
+        render_sections_markdown(result.get("trend_analysis", "無趨勢分析。"))
+
+    with t6_tab:
+        # 型態分析圖表 (K 棒 + MA50 供參考)
+        if selected_ticker:
+            # 1. 獲取足夠 lookback 的數據 (2年)
+            history_full = get_ta_base_data(selected_ticker)
+
+            if not history_full.empty:
+                # 2. 定義繪圖範圍 (過去一年)
+                one_year_ago = datetime.now() - timedelta(days=365)
+                history_plot = history_full[history_full.index >= one_year_ago.strftime('%Y-%m-%d')]
+
+                if history_plot.empty:
+                    history_plot = history_full
+                
+                # 3. 於完整數據集上計算指標
+                ma50 = calculate_sma(history_full, 50)
+                
+                price_lines = [
+                    (ma50, "50日移動平均 (MA50)", "#FF5722") # Orange
+                ]
+
+                fig = plot_technical_analysis(
+                    history_plot, 
+                    selected_ticker, 
+                    price_lines=price_lines,
+                    title="股價型態觀察"
+                )
+                st.plotly_chart(fig, use_container_width=True, config={'displayModeBar': False})
+            else:
+                st.warning(f"無法獲取 {selected_ticker} 的股價數據進行技術型態分析。")
+
+        render_sections_markdown(result.get("pattern_analysis", "無型態分析。"))
+        
+    with t7_tab:
+        # 指標分析圖表 (RSI 14 & MTM 10)
+        if selected_ticker:
+            # 1. 獲取足夠 lookback 的數據 (2年)
+            history_full = get_ta_base_data(selected_ticker)
+
+            if not history_full.empty:
+                # 2. 定義繪圖範圍 (過去一年)
+                one_year_ago = datetime.now() - timedelta(days=365)
+                history_plot = history_full[history_full.index >= one_year_ago.strftime('%Y-%m-%d')]
+
+                if history_plot.empty:
+                    history_plot = history_full
+
+                # 3. 於完整數據集上計算指標
+                rsi14 = calculate_rsi(history_full, window=14)
+                mtm10 = calculate_mtm(history_full, window=10)
+                
+                # RSI 屬於獨立指標，傳遞給 indicator_list
+                indicator_list = []
+                indicator_list.append({
+                    "series": rsi14, 
+                    "name": "RSI (14)", 
+                    "color": "#FFC107", 
+                    "type": "RSI"
+                })
+                indicator_list.append({
+                    "series": mtm10, 
+                    "name": "動能指數 (MTM 10)", 
+                    "color": "#4285F4", 
+                    "type": "MTM"
+                })
+
+                fig = plot_technical_analysis(
+                    history_plot, 
+                    selected_ticker, 
+                    price_lines=[],
+                    indicator_list=indicator_list, # 傳遞兩個指標
+                    title="動能指標分析 (RSI 14 & MTM 10)"
+                )
+                st.plotly_chart(fig, use_container_width=True, config={'displayModeBar': False})
+            else:
+                st.warning(f"無法獲取 {selected_ticker} 的股價數據進行技術指標分析。")
+
+        render_sections_markdown(result.get("indicator_analysis", "無指標分析。"))
+
+    with t8_tab:
         raw_risk = extract_text_from_content(result.get("risk_assessment", "無風險評估"))
         raw_risk = raw_risk.replace(
             '作為首席風險官，我的職責是扮演「魔鬼代言人」，專注於識別潛在的下行風險，特別是那些可能被市場普遍樂觀情緒所忽略的方面。針對您「最近微軟可以買嗎」的提問，我的評估如下：',
@@ -557,7 +936,7 @@ if 'research_result' in st.session_state:
                 raw_risk = parts[1]
         render_sections_markdown(raw_risk)
 
-    with t5_tab:
+    with t9_tab:
         news_content = extract_text_from_content(result.get("news_analysis", ""))
         links = re.findall(r'\[([^\]]+)\]\((http[^\)]+)\)', news_content)
 

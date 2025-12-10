@@ -27,6 +27,11 @@ def main():
             print("Error: OPENAI_API_KEY not found in environment variables.")
             print("Please create a .env file with your OPENAI_API_KEY.")
             return
+    elif provider == "groq":
+        if not os.getenv("GROQ_API_KEY"):
+            print("Error: GROQ_API_KEY not found in environment variables.")
+            print("Please create a .env file with your GROQ_API_KEY.")
+            return
     else:
         # Fallback or warning for unknown provider
         print(f"Warning: Unknown LLM_PROVIDER '{provider}'. Checking for OPENAI_API_KEY by default.")

@@ -53,10 +53,11 @@ def risk_manager_node(state: AgentState):
     - User Query: The specific question or hypothesis the user has.
     - Data Analysis (Valuation, Financials)
     - News Analysis (Catalysts, Sentiment)
+    - **Technical Strategy (Technical Outlook)**: The combined view of chart trends, patterns, and indicators.
     
     Output in **Traditional Chinese (繁體中文)**:
     1. **Stress Test User's Hypothesis (壓力測試用戶假設)**: If the user is asking "Is X a bottleneck?", explore "What if X is NOT a bottleneck?" or "What if X gets worse?".
-    2. **Bear Case Scenario (看空情境)**: Describe a specific scenario where the stock could drop 20%+.
+    2. **Bear Case Scenario (看空情境)**: Describe a specific scenario where the stock could drop 20%+. Highlight *Technical Breakdowns* (e.g., breaking major moving average or support) as a primary risk.
     3. **Risk Categorization (風險分類)**: Macro, Sector, Company.
     4. **Risk Score (風險評分)**: Assign a score (1-10) with justification.
     
@@ -75,6 +76,7 @@ def risk_manager_node(state: AgentState):
     user_query = state.get("query", "No specific query provided.")
     data_analysis = state.get("data_analysis", "No data analysis provided.")
     news_analysis = state.get("news_analysis", "No news analysis provided.")
+    technical_strategy = state.get("technical_strategy", "No technical strategy provided.")
     
     user_message = f"""User Query:
 {user_query}
@@ -84,6 +86,9 @@ Data Analysis:
 
 News Analysis:
 {news_analysis}
+
+Technical Strategy:
+{technical_strategy}
 
 Please provide your risk assessment."""
     
