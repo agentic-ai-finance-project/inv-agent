@@ -145,8 +145,9 @@ st.markdown("""
         color: #ffffff !important;
     }
     
-    /* 8. Status Widget summary 文字顏色修正（最強覆蓋版） */
-    /* 同時匹配 .stExpander wrapper 與 data-testid 兩種情況，並覆蓋所有子元素 */
+    /* 8. Status Widget & Expander 樣式修正（最強覆蓋版）[修改：背景改淺灰] */
+    
+    /* (A) 設定文字與圖示顏色為黑色 (維持不變) */
     div.stExpander summary,
     div.stExpander summary *,
     div[data-testid="stExpander"] summary,
@@ -155,24 +156,62 @@ st.markdown("""
     div[data-testid="stExpander"] > details summary * {
         color: #000000 !important;
         fill: #000000 !important;
-        -webkit-text-fill-color: #000000 !important; /* for some icon fonts */
+        -webkit-text-fill-color: #000000 !important; 
     }
 
-    /* 如果 summary 本身被設 background 白，仍保留可讀性 */
+    /* (B) 設定背景色 (改為淺灰色) */
     div.stExpander summary,
     div[data-testid="stExpander"] summary {
-        background-color: #ffffff !important;
+        /* 將 #ffffff 改為 #e0e3e7 (極淺灰)，視覺更柔和 */
+        background-color: #e0e3e7 !important; 
         transition: background-color 0.2s ease, color 0.2s ease;
+        border-radius: 4px; /* 加一點圓角讓淺灰背景更好看 */
     }
 
-    /* 若要保留箭頭或 check icon 綠色，單獨覆蓋文字 p 而非 icon */
+    /* (C) 確保內部文字顏色正確 (維持不變) */
     div.stExpander summary p,
     div.stExpander summary div[data-testid="stMarkdownContainer"] p,
     div[data-testid="stExpander"] summary p,
     div[data-testid="stExpander"] summary div[data-testid="stMarkdownContainer"] p {
         color: #000000 !important;
         -webkit-text-fill-color: #000000 !important;
-    }   
+    }  
+    
+    /* 9. Metric (數據指標) 樣式修正 [新增] */
+    
+    /* (A) 指標標題 (Label) - 例如：市值、本益比 */
+    [data-testid="stMetricLabel"] p {
+        color: #e8eaed !important; /* 使用亮灰白，保留一點層次感 */
+    }
+
+    /* (B) 指標數值 (Value) - 例如：188.46億 */
+    [data-testid="stMetricValue"] div {
+        color: #ffffff !important; /* 數值強制純白，強調重點 */
+    }
+            
+    /* 10. Alert Container (st.info, st.success 等) 文字顏色優化 [修改：柔和灰白] */
+    
+    /* 改為 #e8eaed (柔和灰白)，避免純白過於刺眼 */
+    [data-testid="stAlertContainer"] {
+        color: #e8eaed !important;
+    }
+    
+    /* 確保容器內所有層級的文字元素顏色一致 */
+    [data-testid="stAlertContainer"] p,
+    [data-testid="stAlertContainer"] li,
+    [data-testid="stAlertContainer"] ul,
+    [data-testid="stAlertContainer"] strong,
+    [data-testid="stAlertContainer"] h1,
+    [data-testid="stAlertContainer"] h2,
+    [data-testid="stAlertContainer"] h3,
+    [data-testid="stAlertContainer"] div[data-testid="stMarkdownContainer"] {
+        color: #e8eaed !important;
+    }
+    
+    /* 連結維持亮藍色，確保清楚可見 */
+    [data-testid="stAlertContainer"] a {
+        color: #8ab4f8 !important;
+    }
     </style>
     """, unsafe_allow_html=True)
 
@@ -1032,17 +1071,16 @@ if 'research_result' in st.session_state:
             st.warning("未識別股票代號，無法顯示技術圖表。")
 
     # ---------------------------------------------------------
-    # Tab 3: 基本面與新聞 (Fundamental)
+    # Tab 3: 基本面與新聞 (Fundamental) - 邏輯層 [修改：改為 Expanders]
     # ---------------------------------------------------------
     with tab_fund:
-        c_news, c_data = st.columns([1, 1])
-        with c_news:
-            st.markdown("### 📰 新聞摘要 (Narrative)")
+        # Expander A: 新聞摘要 (預設展開) - Narrative
+        with st.expander("📰 新聞摘要 (Narrative)", expanded=True):
             render_sections_markdown(result.get("news_analysis", "暫無新聞分析"))
-        with c_data:
-            st.markdown("### 📊 數據分析 (Numbers)")
+            
+        # Expander B: 數據分析 (預設收起) - Numbers
+        with st.expander("📊 數據分析 (Numbers)", expanded=False):
             render_sections_markdown(result.get("data_analysis", "暫無數據分析"))
-
     # ---------------------------------------------------------
     # Tab 4: 原始資料 (Raw)
     # ---------------------------------------------------------
