@@ -905,12 +905,12 @@ if 'research_result' in st.session_state:
         _, history_1mo = get_stock_data(selected_ticker, period=selected_period_code)
 
     # =========================================================
-    #  A. 報告標題與市場儀表板 (置頂區域)
+    #  A. 市場數據儀表板 (Global Dashboard)
     # =========================================================
     st.markdown("---")
-    st.subheader(f"📝 AI 投資報告 - {selected_ticker if selected_ticker else ''}")
+    # [新增] 圖表上方的標題
+    st.subheader(f"📈 市場數據儀表板 - {selected_ticker if selected_ticker else ''}")
 
-    # --- 市場數據儀表板 (Global Dashboard) ---
     if selected_ticker and stock_info:
         
         # 1. 計算漲跌幅與顏色
@@ -973,11 +973,13 @@ if 'research_result' in st.session_state:
     elif not selected_ticker:
         st.info("請先選擇股票以查看市場數據。")
     
-    st.markdown("---")
-
     # =========================================================
     #  B. 詳細分析 Tabs (位於儀表板下方)
     # =========================================================
+    st.markdown("---")
+    
+    # [修改] 這裡放置「AI 投資報告」的標題，位於 Tabs 上方
+    st.subheader(f"📝 AI 投資報告 - {selected_ticker if selected_ticker else ''}")
     
     # 定義 4 個核心分頁
     tab_summary, tab_tech, tab_fund, tab_raw = st.tabs([
@@ -988,7 +990,7 @@ if 'research_result' in st.session_state:
     ])
     
     # ---------------------------------------------------------
-    # Tab 1: 總覽 (Summary) - 只保留建議與風險
+    # Tab 1: 總覽 (Summary)
     # ---------------------------------------------------------
     with tab_summary:
         # 1. 最終建議
@@ -1071,16 +1073,15 @@ if 'research_result' in st.session_state:
             st.warning("未識別股票代號，無法顯示技術圖表。")
 
     # ---------------------------------------------------------
-    # Tab 3: 基本面與新聞 (Fundamental) - 邏輯層 [修改：改為 Expanders]
+    # Tab 3: 基本面與新聞 (Fundamental)
     # ---------------------------------------------------------
     with tab_fund:
-        # Expander A: 新聞摘要 (預設展開) - Narrative
         with st.expander("📰 新聞摘要 (Narrative)", expanded=True):
             render_sections_markdown(result.get("news_analysis", "暫無新聞分析"))
             
-        # Expander B: 數據分析 (預設收起) - Numbers
         with st.expander("📊 數據分析 (Numbers)", expanded=False):
             render_sections_markdown(result.get("data_analysis", "暫無數據分析"))
+
     # ---------------------------------------------------------
     # Tab 4: 原始資料 (Raw)
     # ---------------------------------------------------------
