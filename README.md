@@ -8,11 +8,12 @@ Built with the latest **LangChain v1.0+** and **LangGraph v1.0+**, this assistan
 
 ## 🚀 Features
 
--   **Multi-Agent Architecture**: Leverages a supervisor-worker pattern with specialized roles (Router, Data Analyst, News Analyst, Risk Manager, Chief Editor).
+-   **Multi-Agent Architecture**: Leverages a supervisor-worker pattern with specialized roles (Router, Data Analyst, News Analyst, Technical Analysts, Risk Manager, Chief Editor).
 -   **Traditional Chinese Output**: All reports and analysis are generated in Traditional Chinese (繁體中文) for local context.
--   **Structured Reports**: Agents produce highly structured outputs (Valuation, Financial Health, Market Debate, Catalysts) rather than generic summaries.
+-   **Structured Reports**: Agents produce highly structured outputs (Valuation, Financial Health, Market Debate, Catalysts, Technical Analysis) rather than generic summaries.
 -   **Real-time Data**: Fetches live market data using `yfinance`.
 -   **News Analysis**: Searches and summarizes recent news using `duckduckgo-search`.
+-   **Technical Analysis**: Comprehensive technical analysis including trend analysis, chart patterns, and momentum indicators (RSI, MTM, Moving Averages).
 -   **Risk Assessment**: Dedicated agent for identifying downside risks, volatility, and "bear cases".
 -   **Modern Tech Stack**: Built on the latest LangChain and LangGraph APIs (v1.0+), using `uv` for lightning-fast package management.
 
@@ -29,8 +30,18 @@ graph TD
     start([Start]) --> router[Router]
     router --> data_analyst[Finance Data Analyst]
     router --> news_analyst[Finance News Analyst]
+    router --> trend_analyst[Trend Analyst]
+    router --> pattern_analyst[Pattern Analyst]
+    router --> indicator_analyst[Indicator Analyst]
+    
+    trend_analyst --> technical_strategist[Technical Strategist]
+    pattern_analyst --> technical_strategist
+    indicator_analyst --> technical_strategist
+    
     data_analyst --> risk_manager[Risk Manager]
     news_analyst --> risk_manager
+    technical_strategist --> risk_manager
+    
     risk_manager --> editor[Chief Editor]
     editor --> final([End])
 ```
@@ -46,8 +57,13 @@ graph TD
     -   **Market Debate**: Bull vs. Bear arguments.
     -   **Catalysts**: Upcoming product launches, earnings, or regulatory events.
     -   **Sentiment**: Market sentiment scoring.
-4.  **Risk Manager**: Acts as the "Devil's Advocate", synthesizing data to flag potential downside risks, macro headwinds, and competitive threats.
-5.  **Chief Editor**: Compiles all insights into a structured, narrative-driven Investment Memo, ensuring professional tone and clarity.
+4.  **Technical Analysts** (Three specialized analysts working in parallel):
+    -   **Trend Analyst**: Analyzes price trends using moving averages (SMA 20, SMA 50) and identifies key support/resistance levels.
+    -   **Pattern Analyst**: Identifies chart patterns such as head and shoulders, double tops/bottoms, triangles, and consolidation patterns.
+    -   **Indicator Analyst**: Evaluates momentum using technical indicators like RSI (14) and Momentum Index (MTM 10) to assess overbought/oversold conditions.
+5.  **Technical Strategist**: Synthesizes insights from the three technical analysts to provide a cohesive technical outlook with short-term and medium-term ratings and trading recommendations.
+6.  **Risk Manager**: Acts as the "Devil's Advocate", synthesizing data from fundamental, news, and technical analysis to flag potential downside risks, macro headwinds, and competitive threats.
+7.  **Chief Editor**: Compiles all insights into a structured, narrative-driven Investment Memo, ensuring professional tone and clarity.
 
 ## 🛠️ Prerequisites
 
@@ -128,8 +144,8 @@ API Docs: `http://localhost:8000/docs`
 ## 🔧 Customization
 
 -   **Modify System Prompts**: Edit `src/agents/*.py` to change how agents behave or format their output.
--   **Add New Tools**: Create new tool functions in `src/tools/` and register them in the agent definitions.
--   **Change Graph Logic**: Update `src/graph.py` to modify the workflow (e.g., add a "Human in the Loop" step).
+-   **Add New Tools**: Create new tool functions in `src/tools/` (e.g., `finance_tools.py`, `search_tools.py`, `technical_tools.py`) and register them in the agent definitions.
+-   **Change Graph Logic**: Update `src/graph.py` to modify the workflow (e.g., add a "Human in the Loop" step or change the agent execution order).
 
 ## ❓ Troubleshooting
 
