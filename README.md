@@ -33,15 +33,12 @@ graph TD
     router --> trend_analyst[Trend Analyst]
     router --> pattern_analyst[Pattern Analyst]
     router --> indicator_analyst[Indicator Analyst]
-    
     trend_analyst --> technical_strategist[Technical Strategist]
     pattern_analyst --> technical_strategist
     indicator_analyst --> technical_strategist
-    
     data_analyst --> risk_manager[Risk Manager]
     news_analyst --> risk_manager
     technical_strategist --> risk_manager
-    
     risk_manager --> editor[Chief Editor]
     editor --> final([End])
 ```
