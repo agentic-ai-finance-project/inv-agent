@@ -2,17 +2,18 @@
 
 **A professional, agentic AI system for comprehensive investment analysis.**
 
-Built with the latest **LangChain v1.0+** and **LangGraph v1.0+**, this assistant orchestrates a team of specialized AI agents to perform deep-dive research, analyze financial data, synthesize news sentiment, and assess risks—delivering a professional-grade investment memo in **Traditional Chinese (繁體中文)**.
+Built with the latest **LangChain v1.0+** and **LangGraph v1.0+**, this assistant orchestrates a team of specialized AI agents to perform deep-dive research, analyze financial data, synthesize news sentiment, conduct technical analysis, and assess risks—delivering a professional-grade investment memo in **Traditional Chinese (繁體中文)**.
 
 ---
 
 ## 🚀 Features
 
--   **Multi-Agent Architecture**: Leverages a supervisor-worker pattern with specialized roles (Router, Data Analyst, News Analyst, Risk Manager, Chief Editor).
+-   **Multi-Agent Architecture**: Leverages a supervisor-worker pattern with specialized roles (Router, Data Analyst, News Analyst, Technical Analysts, Risk Manager, Chief Editor).
 -   **Traditional Chinese Output**: All reports and analysis are generated in Traditional Chinese (繁體中文) for local context.
--   **Structured Reports**: Agents produce highly structured outputs (Valuation, Financial Health, Market Debate, Catalysts) rather than generic summaries.
+-   **Structured Reports**: Agents produce highly structured outputs (Valuation, Financial Health, Market Debate, Catalysts, Technical Outlook) rather than generic summaries.
 -   **Real-time Data**: Fetches live market data using `yfinance`.
 -   **News Analysis**: Searches and summarizes recent news using `duckduckgo-search`.
+-   **Technical Analysis**: Comprehensive technical analysis including trend analysis, pattern recognition, and technical indicators (RSI, MTM, Moving Averages).
 -   **Risk Assessment**: Dedicated agent for identifying downside risks, volatility, and "bear cases".
 -   **Modern Tech Stack**: Built on the latest LangChain and LangGraph APIs (v1.0+), using `uv` for lightning-fast package management.
 
@@ -29,8 +30,15 @@ graph TD
     start([Start]) --> router[Router]
     router --> data_analyst[Finance Data Analyst]
     router --> news_analyst[Finance News Analyst]
+    router --> trend_analyst[Trend Analyst]
+    router --> pattern_analyst[Pattern Analyst]
+    router --> indicator_analyst[Indicator Analyst]
+    trend_analyst --> technical_strategist[Technical Strategist]
+    pattern_analyst --> technical_strategist
+    indicator_analyst --> technical_strategist
     data_analyst --> risk_manager[Risk Manager]
     news_analyst --> risk_manager
+    technical_strategist --> risk_manager
     risk_manager --> editor[Chief Editor]
     editor --> final([End])
 ```
@@ -46,14 +54,18 @@ graph TD
     -   **Market Debate**: Bull vs. Bear arguments.
     -   **Catalysts**: Upcoming product launches, earnings, or regulatory events.
     -   **Sentiment**: Market sentiment scoring.
-4.  **Risk Manager**: Acts as the "Devil's Advocate", synthesizing data to flag potential downside risks, macro headwinds, and competitive threats.
-5.  **Chief Editor**: Compiles all insights into a structured, narrative-driven Investment Memo, ensuring professional tone and clarity.
+4.  **Trend Analyst**: Analyzes price trends and moving averages to identify market direction.
+5.  **Pattern Analyst**: Identifies technical chart patterns and price action signals.
+6.  **Indicator Analyst**: Evaluates technical indicators like RSI and Momentum (MTM) for trading signals.
+7.  **Technical Strategist**: Synthesizes all technical analysis into a cohesive technical outlook and trading recommendation.
+8.  **Risk Manager**: Acts as the "Devil's Advocate", synthesizing data to flag potential downside risks, macro headwinds, and competitive threats.
+9.  **Chief Editor**: Compiles all insights into a structured, narrative-driven Investment Memo, ensuring professional tone and clarity.
 
 ## 🛠️ Prerequisites
 
 -   **Python 3.11+**
 -   **[uv](https://github.com/astral-sh/uv)** (Fast Python package installer and resolver)
--   **OpenAI API Key** (or Google Gemini API Key)
+-   **OpenAI API Key**, **Google Gemini API Key**, or **Groq API Key**
 
 ## 📦 Installation
 
@@ -75,22 +87,28 @@ graph TD
     # OpenAI (Default)
     OPENAI_API_KEY=sk-...
     LLM_PROVIDER=openai
-    LLM_MODEL=gpt-4o
+    LLM_MODEL=gpt-4o-mini
 
     # Google Gemini (Optional)
     # GOOGLE_API_KEY=AI...
     # LLM_PROVIDER=google
     # LLM_MODEL=gemini-1.5-pro
+
+    # Groq (Optional)
+    # GROQ_API_KEY=gsk_...
+    # LLM_PROVIDER=groq
+    # LLM_MODEL=llama-3.3-70b-versatile
     ```
 
 ## ⚙️ Configuration
 
 | Variable | Description | Default |
 | :--- | :--- | :--- |
-| `LLM_PROVIDER` | `openai` or `google` | `openai` |
-| `LLM_MODEL` | Model name (e.g., `gpt-4o`, `gemini-1.5-pro`) | `gpt-5-mini` (OpenAI) / `gemini-2.5-flash` (Google) |
+| `LLM_PROVIDER` | `openai`, `google`, or `groq` | `openai` |
+| `LLM_MODEL` | Model name (e.g., `gpt-4o`, `gemini-1.5-pro`, `llama-3.3-70b-versatile`) | `gpt-4o-mini` (OpenAI) / `gemini-2.0-flash-exp` (Google) / `llama-3.3-70b-versatile` (Groq) |
 | `OPENAI_API_KEY` | Required if using OpenAI | - |
 | `GOOGLE_API_KEY` | Required if using Google | - |
+| `GROQ_API_KEY` | Required if using Groq | - |
 
 ## 🏃‍♂️ Usage
 
