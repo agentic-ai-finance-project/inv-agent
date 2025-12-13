@@ -57,7 +57,7 @@ graph TD
 4.  **Technical Analysts** (Three specialized analysts working in parallel):
     -   **Trend Analyst**: Analyzes price trends using moving averages (SMA 20, SMA 50) and identifies key support/resistance levels.
     -   **Pattern Analyst**: Identifies chart patterns such as head and shoulders, double tops/bottoms, triangles, and consolidation patterns.
-    -   **Indicator Analyst**: Evaluates momentum using technical indicators like RSI (14) and Momentum Index (MTM 10) to assess overbought/oversold conditions.
+    -   **Indicator Analyst**: Evaluates momentum using technical indicators like RSI (14) and MTM (10) to assess overbought/oversold conditions.
 5.  **Technical Strategist**: Synthesizes insights from the three technical analysts to provide a cohesive technical outlook with short-term and medium-term ratings and trading recommendations.
 6.  **Risk Manager**: Acts as the "Devil's Advocate", synthesizing data from fundamental, news, and technical analysis to flag potential downside risks, macro headwinds, and competitive threats.
 7.  **Chief Editor**: Compiles all insights into a structured, narrative-driven Investment Memo, ensuring professional tone and clarity.
