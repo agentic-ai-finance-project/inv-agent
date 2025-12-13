@@ -87,7 +87,7 @@ graph TD
     # OpenAI (Default)
     OPENAI_API_KEY=sk-...
     LLM_PROVIDER=openai
-    LLM_MODEL=gpt-4o
+    LLM_MODEL=gpt-4o-mini
 
     # Google Gemini (Optional)
     # GOOGLE_API_KEY=AI...
